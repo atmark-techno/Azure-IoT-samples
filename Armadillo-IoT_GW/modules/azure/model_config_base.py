@@ -12,16 +12,21 @@ class ModelConfigBase:
     IOTHUB_DEVICE_DPS_DEVICE_ID  = "IOTHUB_DEVICE_DPS_DEVICE_ID"
     IOTHUB_DEVICE_DPS_DEVICE_KEY = "IOTHUB_DEVICE_DPS_DEVICE_KEY"
 
-    def __init__(self, config_file_path):
+    def __init__(self):
         self._configs = {}
+
+    def load(self, config_file_path):
         with open(config_file_path, 'r') as f:
             config = json.load(f)
             for key in config.keys():
                 val = config[key]
-                if (ModelConfigBase._is_valid_conf_item(key, val)):
+                if (self._is_valid_conf_item(key, val)):
                     self._configs[key] = val
         if not self._configs.get(ModelConfigBase.AUTH):
             print("Error! auth setting not found.")
+            return False
+        else:
+            return True
 
     def auth_props(self):
         return self._configs[ModelConfigBase.AUTH]
@@ -44,8 +49,7 @@ class ModelConfigBase:
             self._configs[ModelConfigBase.THERMAL_SENSE_INTERVAL] = value
         return value
 
-    @staticmethod
-    def _is_valid_conf_item(name, value):
+    def _is_valid_conf_item(self, name, value):
         if (name == ModelConfigBase.AUTH):
             if not isinstance(value, dict):
                 print("Error! the setting value of ", name, " is invalid.")
