@@ -4,7 +4,6 @@ import sys
 
 
 from modules.lib.report_repository import ReportRepository
-from modules.azure.iot_pnp_client import IoTPnPClient
 
 
 class AzureReportRepository(ReportRepository):
@@ -39,12 +38,20 @@ class AzureReportRepository(ReportRepository):
                 return False
 
     def process_alarm(self, alarm):
-        print("Sorry, but ", type(self).__name__, ".", "process_alarm()", " is not implemented yet. alarm.is_activate= ", alaram.is_activate, sep="")
+        updated_prop = self._iot_pnp_client.process_alarm(alarm)
+        if updated_prop:
+            self.send_updated_prop(updated_prop)
         return True
 
     def dispatch_operation(self):
 #        print("Sorry, but ", type(self).__name__, ".", "dispatch_operation()", " is not implemented yet.", sep="")
         return False
+
+    def send_updated_prop(self, prop_data):
+        future = asyncio.run_coroutine_threadsafe(
+            self._iot_pnp_client.send_updated_prop(prop_data), self._loop
+        )
+        future.result()
 
     def _send_telemetry(self, telemetry_data):
         future = asyncio.run_coroutine_threadsafe(

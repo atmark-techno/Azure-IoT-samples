@@ -1,0 +1,16 @@
+{
+  "auth": {
+    "IOTHUB_DEVICE_DPS_ENDPOINT": "global.azure-devices-provisioning.net",
+    "IOTHUB_DEVICE_DPS_ID_SCOPE": "",
+    "IOTHUB_DEVICE_DPS_DEVICE_ID": "",
+    "IOTHUB_DEVICE_DPS_DEVICE_KEY": ""
+  },
+  "send_interval": 2,
+  "thermalsense_interval": 2,
+  "disable_reboot": false,
+  "powermonitor_alert_conf": {
+    "threshold": 0.5,
+    "enabled": false
+  },
+  "powermonitor_interval": 4
+}

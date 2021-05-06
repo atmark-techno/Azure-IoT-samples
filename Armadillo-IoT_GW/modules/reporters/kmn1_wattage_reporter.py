@@ -25,13 +25,14 @@ class Kmn1WattageReporter(Reporter):
         return report, alarm
 
     def __init__(self, port='/dev/ttymxc0', baudrate=9600, unit=1,
-                    parity="E", waittime=20):
+                    parity="E", waittime=20, stopbits=1):
         super().__init__()
         self.client = ModbusSerialClient(
                             method='rtu',
                             port=port,
                             baudrate=baudrate,
-                            parity=parity)
+                            parity=parity,
+                            stopbits=stopbits)
 
         self.unit = unit
         self.waittime = waittime / 100

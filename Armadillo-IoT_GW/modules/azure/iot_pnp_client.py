@@ -20,6 +20,9 @@ class IoTPnPClient:
     def is_connected(self):
         return self._isConnected
 
+    def process_alarm(self, alarm):
+        return self._modelDev.process_alarm(alarm)
+
     async def auth_and_connect(self):
         model_id  = self._modelDev.model_id()
         auth_conf = self._modelConfig.auth_props()
@@ -76,6 +79,18 @@ class IoTPnPClient:
         print("Send message")
         try:
             await self._clientHandle.send_message(msg)
+        except CredentialError:
+            print("connection has broken.")
+            self._isConnected = False
+            return False
+
+        return True
+
+    async def send_updated_prop(self, prop_data):
+        if not self._isConnected:
+            return False
+        try:
+            await self._clientHandle.patch_twin_reported_properties(prop_data)
         except CredentialError:
             print("connection has broken.")
             self._isConnected = False
