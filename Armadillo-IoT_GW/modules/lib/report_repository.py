@@ -52,6 +52,7 @@ class ReportRepository(ABC):
         if timeout is not None:
             started_at = int(time())
 
+        self.__curr_task = asyncio.current_task()
         self.__interval_no_alarm = 0.0
         while not self._quit_requested:
             started_at_proc = int(time())
@@ -111,15 +112,22 @@ class ReportRepository(ABC):
                 self.__interval_no_alarm = interval_current
 
             interval = self.__sleep_interval()
-            await asyncio.sleep(interval)
+            try:
+                await asyncio.sleep(interval)
+            except:
+                pass
 
     def start_loop(self, timeout=None):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.__async_loop(timeout))
+        try:
+            loop.run_until_complete(self.__async_loop(timeout))
+        except:
+            pass
 
     def request_stop(self):
         self._quit_requested = True
+        self.__curr_task.cancel()
 
     def interval(self):
         return self.__interval

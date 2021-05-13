@@ -61,6 +61,7 @@ class ReporterManager:
         if timeout is not None:
             started_at = int(time())
 
+        self.__curr_task = asyncio.current_task()
         while not self.__quit_requested:
             self.__check_nop_queue()
             if self.__empty():
@@ -93,10 +94,14 @@ class ReporterManager:
     def start_loop(self, timeout=None):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.__async_loop(timeout))
+        try:
+            loop.run_until_complete(self.__async_loop(timeout))
+        except:
+            pass
 
     def request_stop(self):
         self.__quit_requested = True
+        self.__curr_task.cancel()
 
     def __init__(self, report_queue, alarm_queue):
         self.__reporter_queue = PriorityQueue()
