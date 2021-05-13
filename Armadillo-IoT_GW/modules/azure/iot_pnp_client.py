@@ -53,7 +53,11 @@ class IoTPnPClient:
             product_info=model_id
         )
         await device_client.connect()
-        await device_client.patch_twin_reported_properties(self._modelDev.props())
+        twin = await device_client.get_twin()
+        del (twin['reported'])['$version']
+        props = self._modelDev.props()
+        if props != twin['reported']:
+            await device_client.patch_twin_reported_properties(props)
         device_client.on_method_request_received = self._method_request_handler
         device_client.on_twin_desired_properties_patch_received = self._twin_patch_handler
         self._clientHandle = device_client
