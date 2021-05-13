@@ -62,6 +62,9 @@ class ModelDevBase(ABC):
             manager.listen_to(reporter)
         self._loopables.append(report_repository)
         self._loopables.append(manager)
+        active_reporters = self._make_active_reporters(self._modelConfig, queue, report_repository)
+        for reporter in active_reporters:
+            self._loopables.append(reporter)
 
     def loopables(self):
         return self._loopables
@@ -90,6 +93,9 @@ class ModelDevBase(ABC):
         self._tempReporter = tempReporter
 
         return reporters
+
+    def _make_active_reporters(self, config, report_queue, report_repository):
+        return []
 
     def _get_command_method(self, name):
         if (name == 'reboot'):
