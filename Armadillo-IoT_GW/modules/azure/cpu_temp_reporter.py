@@ -3,6 +3,7 @@ from modules.reporters.temperature_reporter import TemperatureReporter
 
 class CpuTempReporter(TemperatureReporter):
     def __init__(self, component_name=None):
+        super().__init__()
         self._component_name = component_name
 
     def report(self):
