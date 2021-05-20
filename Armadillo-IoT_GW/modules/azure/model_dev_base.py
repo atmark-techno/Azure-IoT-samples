@@ -15,7 +15,7 @@ from modules.azure.report_repository import AzureReportRepository
 
 
 class ModelDevBase(ABC):
-    def __init__(self, modelConfig):
+    def __init__(self, modelConfig, component_name=None):
         self._props = {}
         if platform.system() == "Windows":
             self._uniqueID = "armadillo-" + get_mac()
@@ -25,6 +25,14 @@ class ModelDevBase(ABC):
                 -e 's/ //g' | sed -e 's/\t//g' | cut -c 8-"
             )
         self._props["serialNumber"] = self._uniqueID
+        if component_name is not None:
+            props = self._props
+            props["__t"] = "c"
+            self._props = {}
+            self._props[component_name] = props
+            self._component_name = component_name
+        else:
+            self._component_name = None
         self._loopables    = []
         self._modelConfig  = modelConfig
         self._tempReporter = None
@@ -98,7 +106,10 @@ class ModelDevBase(ABC):
         return []
 
     def _get_command_method(self, name):
-        if (name == 'reboot'):
+        if self._component_name is not None:
+            if (name in ('reboot', self._component_name + '*reboot')):
+                return self._command_reboot
+        elif (name == 'reboot'):
             return self._command_reboot
         else:
             return None

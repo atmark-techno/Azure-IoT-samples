@@ -2,11 +2,12 @@
 import asyncio
 import sys
 
-
 from modules.lib.report_repository import ReportRepository
 
 
 class AzureReportRepository(ReportRepository):
+    BAG_OF_REPORT = "__report_bag__"
+
     def __init__(self, report_queue, alarm_queue, iot_pnp_client, loop):
         super().__init__(report_queue, alarm_queue)
         self._iot_pnp_client = iot_pnp_client
@@ -15,8 +16,11 @@ class AzureReportRepository(ReportRepository):
     def process_report(self, report):
         if report.data_type == 'measurement':
             reported_data = report.reported_data
-            telemetry_data = {reported_data['type']: reported_data['value']}
-            self._send_telemetry(telemetry_data)
+            if AzureReportRepository.BAG_OF_REPORT == reported_data['type']:
+                telemetry_data = reported_data['value']
+            else:
+                telemetry_data = {reported_data['type']: reported_data['value']}
+            self._send_telemetry(telemetry_data, reported_data)
             return True
         else:
             return False
@@ -32,7 +36,7 @@ class AzureReportRepository(ReportRepository):
                     telemetry_data = {reported_data['type']: reported_data['value']}
                     measurements.append(telemetry_data)
             if measurements:
-                self._send_telemetry(measurements)
+                self._send_telemetry(measurements, reported_data)
                 return True
             else:
                 return False
@@ -53,7 +57,9 @@ class AzureReportRepository(ReportRepository):
         )
         future.result()
 
-    def _send_telemetry(self, telemetry_data):
+    def _send_telemetry(self, telemetry_data, reported_data):
+        if "$.sub" in reported_data:
+            telemetry_data["$.sub"] = reported_data["$.sub"]
         future = asyncio.run_coroutine_threadsafe(
             self._iot_pnp_client.send_telemetry(telemetry_data), self._loop
         )

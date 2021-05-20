@@ -87,9 +87,16 @@ class IoTPnPClient:
     async def send_telemetry(self, telemetry_data):
         if not self._isConnected:
             return False
+        if "$.sub" in telemetry_data:
+            component = telemetry_data["$.sub"]
+            del telemetry_data["$.sub"]
+        else:
+            component = None
         msg = Message(json.dumps(telemetry_data))
         msg.content_enconding = "utf-8"
         msg.content_type      = "application/json"
+        if component is not None:
+            msg.custom_properties["$.sub"] = component
         print("Send message")
         try:
             await self._clientHandle.send_message(msg)
