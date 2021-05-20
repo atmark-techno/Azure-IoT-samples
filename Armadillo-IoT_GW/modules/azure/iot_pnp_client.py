@@ -20,6 +20,7 @@ class IoTPnPClient:
         self._modelDev     = modelDev
         self._clientHandle = None
         self._isConnected  = False
+        self._doReconnect  = False
         if platform.system() == "Linux":
             debian_version = subprocess.getoutput(
                 "cat /etc/os-release | grep VERSION_ID | sed -e 's/\"//g' | cut -c 12-"
@@ -70,6 +71,7 @@ class IoTPnPClient:
             await device_client.patch_twin_reported_properties(props)
         device_client.on_method_request_received = self._method_request_handler
         device_client.on_twin_desired_properties_patch_received = self._twin_patch_handler
+        device_client.on__message_received = self._message_received_handler
         self._clientHandle = device_client
         self._isConnected  = True
 
@@ -86,6 +88,10 @@ class IoTPnPClient:
 
     async def send_telemetry(self, telemetry_data):
         if not self._isConnected:
+            if self._doReconnect:
+                print("try reconnect...")
+                await self._do_connect()
+                print("done")
             return False
         if "$.sub" in telemetry_data:
             component = telemetry_data["$.sub"]
@@ -103,6 +109,7 @@ class IoTPnPClient:
         except CredentialError:
             print("connection has broken.")
             self._isConnected = False
+            self._doReconnect = True
             return False
 
         return True
@@ -118,6 +125,9 @@ class IoTPnPClient:
             return False
 
         return True
+
+    async def _do_connect(self):
+        await self.auth_and_connect()
 
     async def _method_request_handler(self, method_request):
         post_proc = None
@@ -155,6 +165,9 @@ class IoTPnPClient:
                     "value": new_value
                 }
         await self._clientHandle.patch_twin_reported_properties(props)
+
+    async def _message_received_handler(self, msg):
+        print("got message from the cloud, msg= ", msg)
 
 #
 # End of File
