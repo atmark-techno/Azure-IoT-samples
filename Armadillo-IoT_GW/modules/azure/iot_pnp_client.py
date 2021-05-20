@@ -1,5 +1,9 @@
 import asyncio
+import certifi
 import json
+import os
+import platform
+import subprocess
 
 from azure.iot.device import Message, MethodResponse
 from azure.iot.device.aio import IoTHubDeviceClient
@@ -16,6 +20,12 @@ class IoTPnPClient:
         self._modelDev     = modelDev
         self._clientHandle = None
         self._isConnected  = False
+        if platform.system() == "Linux":
+            debian_version = subprocess.getoutput(
+                "cat /etc/os-release | grep VERSION_ID | sed -e 's/\"//g' | cut -c 12-"
+            )
+            if int(debian_version) >= 10:
+                os.environ["SSL_CERT_FILE"] = certifi.where()
 
     def is_connected(self):
         return self._isConnected
