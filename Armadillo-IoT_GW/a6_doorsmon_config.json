@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "IOTHUB_DEVICE_DPS_ENDPOINT": "global.azure-devices-provisioning.net",
+    "IOTHUB_DEVICE_DPS_ID_SCOPE": "",
+    "IOTHUB_DEVICE_DPS_DEVICE_ID": "",
+    "IOTHUB_DEVICE_DPS_DEVICE_KEY": ""
+  },
+  "disable_reboot": true,
+  "disable_whitelist":true
+}
