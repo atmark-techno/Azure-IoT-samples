@@ -125,7 +125,6 @@ class DoorStatusReporter(ActiveReporter):
             self._handle_ready_report()
 
     def _do_transit_action(self, next_state):
-#        print("transient to the state ", next_state)
         return
 
     def _handle_wait_data(self):
@@ -199,6 +198,7 @@ class DoorStatusReporter(ActiveReporter):
             type=DoorStatusReporter.DOOR_STATE,
             key=DoorStatusReporter.DOOR_STATE,
             value={
+                DoorStatusReporter.SID: self._notifi_sensor[DoorStatusReporter.SID],
                 DoorStatusReporter.IS_ON: sensor_info[DoorStatusReporter.IS_ON],
                 DoorStatusReporter.CHANGE_TIME: sensor_info[DoorStatusReporter.CHANGE_TIME],
                 DoorStatusReporter.LAST_SENSE_TIME: sensor_info[DoorStatusReporter.LAST_SENSE_TIME]

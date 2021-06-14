@@ -9,7 +9,7 @@ class ModelDevA6DoorsMonitor(ModelDevBase):
         self._door_status_reporter = None
 
     def model_id(self):
-        return "dtmi:atmark_techno:Armadillo:IoT_GW_A6_DoorsMonitor;2"
+        return "dtmi:atmark_techno:Armadillo:IoT_GW_A6_DoorsMonitor;3"
 
     def set_prop(self, name, value):
         if name == ModelDevA6DoorsMonitor.SID_WHITE_LIST:

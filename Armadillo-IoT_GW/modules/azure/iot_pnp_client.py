@@ -65,6 +65,11 @@ class IoTPnPClient:
         )
         await device_client.connect()
         twin = await device_client.get_twin()
+        if 'desired' in twin:
+            desiredProps = twin['desired']
+            del (desiredProps)['$version']
+            for name in iter(desiredProps):
+                self._modelDev.set_prop(name, desiredProps[name])
         del (twin['reported'])['$version']
         props = self._modelDev.props()
         if props != twin['reported']:
