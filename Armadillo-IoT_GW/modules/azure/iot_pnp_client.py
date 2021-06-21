@@ -61,7 +61,8 @@ class IoTPnPClient:
             symmetric_key=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY],
             hostname=registration_state.assigned_hub,
             device_id=registration_state.device_id,
-            product_info=model_id
+            product_info=model_id,
+            connection_retry=False
         )
         await device_client.connect()
         twin = await device_client.get_twin()
@@ -111,8 +112,10 @@ class IoTPnPClient:
         print("Send message")
         try:
             await self._clientHandle.send_message(msg)
-        except CredentialError:
-            print("connection has broken.")
+        except:
+            print("caught an exception from send_message().")
+            import traceback
+            traceback.print_exc()
             self._isConnected = False
             self._doReconnect = True
             return False
