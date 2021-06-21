@@ -114,8 +114,6 @@ class IoTPnPClient:
             await self._clientHandle.send_message(msg)
         except:
             print("caught an exception from send_message().")
-            import traceback
-            traceback.print_exc()
             self._isConnected = False
             self._doReconnect = True
             return False
