@@ -1,5 +1,5 @@
-
 import asyncio
+import subprocess
 from enum import IntEnum
 
 from modules.lib.agent_utils import run_on_bash
@@ -56,12 +56,22 @@ class LedBlinker:
         self._quit_requested = True
 
     def change_state(self, next_state):
-        self._next_state = next_state
+        if next_state == BlinkPattern.NORMAL_SLOW:
+            self._next_state = BlinkPattern.NORMAL_SLOW
+        elif next_state == BlinkPattern.NORMAL_FAST:
+            self._next_state = BlinkPattern.NORMAL_FAST
+        elif next_state == BlinkPattern.SUCESS:
+            self._next_state = BlinkPattern.SUCESS
+        elif next_state == BlinkPattern.ERROR:
+            self._next_state = BlinkPattern.ERROR
+        elif next_state == BlinkPattern.STOPPED:
+            self._next_state = BlinkPattern.STOPPED
 
     async def _exec_pattern(self, pattern):
         for (on, duration) in pattern:
             c = '1' if on else '0'
-            print(c, end="", flush=True)
+            cmd = "echo " + c + " > /sys/class/leds/" + self._targets[0] + "/brightness"
+            subprocess.call([cmd], shell = True)
             await asyncio.sleep(duration)
             if self._quit_requested or (self._next_state != self._curr_state):
                 return

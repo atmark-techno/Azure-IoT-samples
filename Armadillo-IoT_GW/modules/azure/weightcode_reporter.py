@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from datetime import datetime
 from enum import Enum
+from enum import IntEnum
 from time import time
 from time import localtime, strftime
 from serial import Serial
@@ -28,11 +29,14 @@ def get_other_port(vid, pid):
 def make_qrcode_reader():
     return ALX3601(port("065A","A002"))
 
-class WeighingState(Enum):
+class WeighingState(IntEnum):
     WAIT_MEASUREMENT   = 1,
     GOT_MEASURED_VALUE = 2,
     READY_REPORT       = 3
 
+class DeviceModel(Enum):
+    G3M1 = 1,
+    A6   = 2
 
 class WeightCodeReporter(ActiveReporter):
     WEIGHING_STATUS = "weighing_status"
@@ -44,17 +48,21 @@ class WeightCodeReporter(ActiveReporter):
     TZ_INFO = strftime("%z", localtime())
     INVALID_TIME = datetime.fromtimestamp(0).isoformat() + "Z"
 
-    def __init__(self, report_queue, report_repository, port=None):
+    def __init__(self, report_queue, report_repository, model, port=None):
         super().__init__(report_queue, report_repository)
         self._curr_state     = WeighingState.WAIT_MEASUREMENT
         self._measured_val   = 0.0
         self._measure_time   = ''
         self._item_code      = ''
-        if port is None:
-            port = get_other_port("065A","A002")
+        self._model = model
+        if  self._model == DeviceModel.G3M1:
             if port is None:
-                raise Exception("weighin machine's COM port is not found")
-        self._weigh_machine  = Serial(port, timeout=1.0)
+                port = get_other_port("065A","A002")
+                if port is None:
+                    raise Exception("weighin machine's COM port is not found")
+            self._weigh_machine  = Serial(port, timeout=1.0)
+        elif  self._model == DeviceModel.A6:
+            self._weigh_machine  = Serial('/dev/ttymxc2', 9600, timeout=1.0)
         self._qrcode_reader  = make_qrcode_reader()
         self._weighing_status = {
             WeightCodeReporter.SART_TIME: WeightCodeReporter.INVALID_TIME,
@@ -63,7 +71,10 @@ class WeightCodeReporter(ActiveReporter):
             WeightCodeReporter.ERROR_COUNT: 0
         }
         self._weigh_machine.close()
-        self._led_blinker = LedBlinker("led2", ["led3", "led4"])
+        if model == DeviceModel.G3M1:
+            self._led_blinker = LedBlinker("led2", ["led3", "led4"])
+        elif model == DeviceModel.A6:
+            self._led_blinker = LedBlinker("red")
         self._led_task = asyncio.get_event_loop().create_task(self._led_blinker.run())
 
     def weighing_status(self):
@@ -74,8 +85,6 @@ class WeightCodeReporter(ActiveReporter):
 
     def request_stop(self):
         super().request_stop()
-        # 必要ならブロッキング I/O をキャンセル.
-        #   xxx
 
     def _before_loop(self):
         self._weigh_machine.open()
@@ -94,18 +103,24 @@ class WeightCodeReporter(ActiveReporter):
             self._handle_ready_report()
 
     def _do_transit_action(self, next_state):
-        # next_state の値に応じて LED 点灯制御
-        #   xxx
+        # LED change blink by next_state
+        self._led_blinker.change_state(next_state)
         print("transient to the state ", next_state)
 
     def _handle_wait_measurement(self):
-        bytes = self._weigh_machine.read_until('\r\n')
+        if  self._model == DeviceModel.G3M1:
+            bytes = self._weigh_machine.read_until('\r\n')
+        elif  self._model == DeviceModel.A6:
+            bytes = self._weigh_machine.readline()
         length = len(bytes) if bytes is not None else 0
         if 0 == length:
             return  # timed out
         elif (length <= 2) or (('\r' != bytes[length - 2]) or ('\n' != bytes[length - 1])):
             tempBuf = bytearray(bytes)
-            tempBuf.join(self._weigh_machine.read_until('\r\n'))
+            if  self._model == DeviceModel.G3M1:
+                tempBuf.join(self._weigh_machine.read_until('\r\n'))
+            elif  self._model == DeviceModel.A6:
+                tempBuf.join(self._weigh_machine.read_until())
         try:
             self._measured_val = WeightCodeReporter._parse_weight_data(bytes)
         except:
