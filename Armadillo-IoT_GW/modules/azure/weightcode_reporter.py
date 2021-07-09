@@ -93,6 +93,7 @@ class WeightCodeReporter(ActiveReporter):
     def _after_loop(self):
         self._led_blinker.request_stop()
         self._weigh_machine.close()
+        self._qrcode_reader.finish()
 
     def _handle_state(self):
         if WeighingState.WAIT_MEASUREMENT == self._curr_state:
@@ -133,6 +134,8 @@ class WeightCodeReporter(ActiveReporter):
 
     def _handle_got_measured_value(self):
         decoded_str = self._qrcode_reader.trigger_read()
+        if decoded_str == None:
+            return
         self._item_code = decoded_str
         self._transit_state(WeighingState.READY_REPORT)
         pass

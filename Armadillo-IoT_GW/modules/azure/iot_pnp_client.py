@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import subprocess
+from enum import IntEnum
 
 from azure.iot.device import Message, MethodResponse
 from azure.iot.device.aio import IoTHubDeviceClient
@@ -13,6 +14,10 @@ from azure.iot.device.exceptions import CredentialError
 from modules.azure.model_config_base import ModelConfigBase
 from modules.azure.model_dev_base import ModelDevBase
 
+class ErrorCode(IntEnum):
+    Success = 1,
+    AuthenticationFailed = 2,
+    ConnectionFailed = 3
 
 class IoTPnPClient:
     def __init__(self, modelConfig, modelDev):
@@ -35,6 +40,9 @@ class IoTPnPClient:
         return self._modelDev.process_alarm(alarm)
 
     async def auth_and_connect(self):
+        if self._isConnected:
+            return
+
         model_id  = self._modelDev.model_id()
         auth_conf = self._modelConfig.auth_props()
 
@@ -47,12 +55,16 @@ class IoTPnPClient:
         provisioning_device_client.provisioning_payload = {
             "modelId": model_id
         }
-        registration_result = await provisioning_device_client.register()
-        if registration_result.status != "assigned":
-            print("Could not provision device.")
-            return False
-        else:
-            print("Device was assigned")
+        try:
+            registration_result = await provisioning_device_client.register()
+            if registration_result.status != "assigned":
+                print("Could not provision device.")
+                return ErrorCode.AuthenticationFailed
+            else:
+                print("Device was assigned")
+        except:
+            print("Connection error.")
+            return ErrorCode.ConnectionFailed
 
         registration_state = registration_result.registration_state
         print(registration_state.assigned_hub)
@@ -81,10 +93,10 @@ class IoTPnPClient:
         self._clientHandle = device_client
         self._isConnected  = True
 
-        return True
+        return ErrorCode.Success
 
     async def disconnect(self):
-        if not self._isConnected:
+        if self._isConnected:
             await self._clientHandle.disconnect()
             self._isConnected = False
 
@@ -111,9 +123,10 @@ class IoTPnPClient:
             msg.custom_properties["$.sub"] = component
         print("Send message")
         try:
-            await self._clientHandle.send_message(msg)
+             await asyncio.wait_for(self._clientHandle.send_message(msg), timeout=10)
         except:
             print("caught an exception from send_message().")
+            await self.disconnect()
             self._isConnected = False
             self._doReconnect = True
             return False
@@ -124,9 +137,10 @@ class IoTPnPClient:
         if not self._isConnected:
             return False
         try:
-            await self._clientHandle.patch_twin_reported_properties(prop_data)
-        except CredentialError:
+            await asyncio.wait_for(self._clientHandle.patch_twin_reported_properties(prop_data), timeout=10)
+        except:
             print("connection has broken.")
+            await self.disconnect()
             self._isConnected = False
             return False
 
@@ -153,7 +167,7 @@ class IoTPnPClient:
             method_request, status, payload
         )
 
-        await self._clientHandle.send_method_response(method_response)
+        await asyncio.wait_for(self._clientHandle.send_method_response(method_response), timeout=10)
         if post_proc:
             post_proc()
 
@@ -170,7 +184,7 @@ class IoTPnPClient:
                     "av": version,
                     "value": new_value
                 }
-        await self._clientHandle.patch_twin_reported_properties(props)
+        await asyncio.wait_for(self._clientHandle.patch_twin_reported_properties(props), timeout=10)
 
     async def _message_received_handler(self, msg):
         print("got message from the cloud, msg= ", msg)

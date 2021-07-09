@@ -16,7 +16,7 @@ def port(vid, pid, serial_number=False):
 class CodeReader:
     def __init__(self, port):
         if port:
-            self.com = serial.Serial(port=port, baudrate=115200)
+            self.com = serial.Serial(port=port, baudrate=115200, timeout=5)
             if self.com == None:
                 raise Exception('2D code reader is not found')
         else:
@@ -32,6 +32,8 @@ class ALX3601(CodeReader):
         buf = []
         while True:
             c = self.com.read().decode('ascii')
+            if c == "":
+                break
             buf.append(c)
             if eol in c:
                 return ''.join(buf)
@@ -45,5 +47,10 @@ class ALX3601(CodeReader):
     def trigger_read(self):
         self.command('Z')  # trigger
         data = self._readline(eol='\r')
+        if data == None:
+            return None
         self.command('Y')  # untrigger
         return data
+
+    def finish(self):
+        self.command('Y')  # untrigger
