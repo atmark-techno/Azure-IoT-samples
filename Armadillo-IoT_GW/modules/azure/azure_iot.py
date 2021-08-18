@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import threading
 import urllib.request
@@ -68,14 +69,30 @@ def stdin_listener():
             break
 
 async def mainloop(dev_cls, config_cls, config_path):
-    loop = asyncio.get_event_loop()
-    azure_iot = AzureIoT(loop, dev_cls, config_cls, config_path)
-    if not await azure_iot.start():
-        return
-    user_finished = loop.run_in_executor(None, stdin_listener)
-    connection_task = loop.create_task(azure_iot.check_network())
-    await user_finished
-    await azure_iot.shutdown()
+    is_deamon = False
+    args=sys.argv
+
+    if len(args) == 2:
+        if args[1] == "-d":
+            is_deamon = True
+
+    if not is_deamon:
+        loop = asyncio.get_event_loop()
+        azure_iot = AzureIoT(loop, dev_cls, config_cls, config_path)
+        if not await azure_iot.start():
+            return
+        user_finished = loop.run_in_executor(None, stdin_listener)
+        connection_task = loop.create_task(azure_iot.check_network())
+        await user_finished
+        await azure_iot.shutdown()
+    else:
+        loop = asyncio.get_event_loop()
+        azure_iot = AzureIoT(loop, dev_cls, config_cls, config_path)
+        if not await azure_iot.start():
+            return
+        connection_task = loop.create_task(azure_iot.check_network())
+        while True:
+            await asyncio.sleep(10)
 
 #
 # End of File
