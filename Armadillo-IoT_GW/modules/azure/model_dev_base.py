@@ -1,6 +1,7 @@
 import asyncio
 import platform
 import subprocess
+import re
 
 from modules.lib.agent_utils import get_mac
 from modules.lib.agent_utils import run_on_bash
@@ -24,6 +25,9 @@ class ModelDevBase(ABC):
                 "cat /proc/cpuinfo | grep Serial | sed \
                 -e 's/ //g' | sed -e 's/\t//g' | cut -c 8-"
             )
+            pattern = r"0{" + str(len(self._uniqueID)) + "}"
+            if re.match(pattern, self._uniqueID):
+                self._uniqueID = get_mac()
         self._props["serialNumber"] = self._uniqueID
         if component_name is not None:
             props = self._props
