@@ -6,6 +6,7 @@ import platform
 import subprocess
 from enum import IntEnum
 
+from azure.iot.device import X509
 from azure.iot.device import Message, MethodResponse
 from azure.iot.device.aio import IoTHubDeviceClient
 from azure.iot.device.aio import ProvisioningDeviceClient
@@ -46,12 +47,26 @@ class IoTPnPClient:
         model_id  = self._modelDev.model_id()
         auth_conf = self._modelConfig.auth_props()
 
-        provisioning_device_client = ProvisioningDeviceClient.create_from_symmetric_key(
-            provisioning_host=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT],
-            registration_id=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_ID],
-            id_scope=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ID_SCOPE],
-            symmetric_key=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY]
-        )
+        print ("auth.mode", auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] )
+        if self._modelConfig.is_x509_mode():
+            x509 = X509(
+                cert_file=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_CERT],
+                key_file=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_KEY],
+                pass_phrase=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_PASS],
+            )
+            provisioning_device_client = ProvisioningDeviceClient.create_from_x509_certificate(
+                provisioning_host=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT],
+                registration_id=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_ID],
+                id_scope=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ID_SCOPE],
+                x509=x509,
+            )
+        else:
+            provisioning_device_client = ProvisioningDeviceClient.create_from_symmetric_key(
+                provisioning_host=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT],
+                registration_id=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_ID],
+                id_scope=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_ID_SCOPE],
+                symmetric_key=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY]
+            )
         provisioning_device_client.provisioning_payload = {
             "modelId": model_id
         }
@@ -69,13 +84,27 @@ class IoTPnPClient:
         registration_state = registration_result.registration_state
         print(registration_state.assigned_hub)
         print(registration_state.device_id)
-        device_client = IoTHubDeviceClient.create_from_symmetric_key(
-            symmetric_key=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY],
-            hostname=registration_state.assigned_hub,
-            device_id=registration_state.device_id,
-            product_info=model_id,
-            connection_retry=False
-        )
+        if self._modelConfig.is_x509_mode():
+            x509 = X509(
+                cert_file=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_CERT],
+                key_file=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_KEY],
+                pass_phrase=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_PASS],
+            )
+            device_client = IoTHubDeviceClient.create_from_x509_certificate(
+                x509=x509,
+                hostname=registration_state.assigned_hub,
+                device_id=registration_state.device_id,
+                product_info=model_id,
+                connection_retry=False
+            )
+        else:
+            device_client = IoTHubDeviceClient.create_from_symmetric_key(
+                symmetric_key=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY],
+                hostname=registration_state.assigned_hub,
+                device_id=registration_state.device_id,
+                product_info=model_id,
+                connection_retry=False
+            )
         await device_client.connect()
         twin = await device_client.get_twin()
         if 'desired' in twin:
