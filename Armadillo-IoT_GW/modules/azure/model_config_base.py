@@ -85,7 +85,10 @@ class ModelConfigBase:
 
     def is_x509_mode(self):
         auth_conf = self.auth_props()
-        return auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] == ModelConfigBase.X509_CERT_MODE
+        if not auth_conf.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE):
+            return False
+        else:
+            return auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] == ModelConfigBase.X509_CERT_MODE
 
     @staticmethod
     def _is_valid_auth_conf(value):

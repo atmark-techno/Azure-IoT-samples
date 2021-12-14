@@ -51,7 +51,8 @@ class IoTPnPClient:
         model_id  = self._modelDev.model_id()
         auth_conf = self._modelConfig.auth_props()
 
-        print ("auth.mode", auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] )
+        if auth_conf.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE):
+            print ("auth.mode", auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] )
         if self._modelConfig.is_x509_mode():
             x509 = X509(
                 cert_file=auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_X509_CERT],
