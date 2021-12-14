@@ -7,10 +7,18 @@ class ModelConfigBase:
     THERMAL_SENSE_INTERVAL = "thermalsense_interval"
     DISABLE_REBOOT         = "disable_reboot"
 
+    IOTHUB_DEVICE_DPS_AUTH_MODE  = "mode"
     IOTHUB_DEVICE_DPS_ENDPOINT   = "IOTHUB_DEVICE_DPS_ENDPOINT"
     IOTHUB_DEVICE_DPS_ID_SCOPE   = "IOTHUB_DEVICE_DPS_ID_SCOPE"
     IOTHUB_DEVICE_DPS_DEVICE_ID  = "IOTHUB_DEVICE_DPS_DEVICE_ID"
     IOTHUB_DEVICE_DPS_DEVICE_KEY = "IOTHUB_DEVICE_DPS_DEVICE_KEY"
+
+    IOTHUB_DEVICE_DPS_X509_CERT  = "IOTHUB_DEVICE_DPS_X509_CERT"
+    IOTHUB_DEVICE_DPS_X509_KEY   = "IOTHUB_DEVICE_DPS_X509_KEY"
+    IOTHUB_DEVICE_DPS_X509_PASS  = "IOTHUB_DEVICE_DPS_X509_PASS"
+
+    X509_CERT_MODE     = "x509-cert"
+    SYMMETRIC_KEY_MODE = "symmetric-key"
 
     def __init__(self):
         self._configs = {}
@@ -75,19 +83,51 @@ class ModelConfigBase:
             print("Warning; unknown setting item: ", name)
             return False
 
+    def is_x509_mode(self):
+        auth_conf = self.auth_props()
+        if not auth_conf.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE):
+            return False
+        else:
+            return auth_conf[ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE] == ModelConfigBase.X509_CERT_MODE
+
     @staticmethod
     def _is_valid_auth_conf(value):
         if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT):
             value.put(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT, "global.azure-devices-provisioning.net")
         elif not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ID_SCOPE):
+            print("Error! IOTHUB_DEVICE_DPS_ID_SCOPE not found")
             return False
         elif not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_ID):
+            print("Error! IOTHUB_DEVICE_DPS_DEVICE_ID not found")
             return False
-        elif not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY):
+        elif not ModelConfigBase._is_valid_auth_param(value):
             return False
         else:
             return True
 
+    @staticmethod
+    def _is_valid_auth_param(value):
+        if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE) \
+            or value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE) == ModelConfigBase.SYMMETRIC_KEY_MODE:
+            if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_DEVICE_KEY):
+                print("Error! IOTHUB_DEVICE_DPS_DEVICE_KEY not found")
+                return False
+            else:
+                return True
+        elif (value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_AUTH_MODE) == ModelConfigBase.X509_CERT_MODE):
+            if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_X509_CERT):
+                print("Error! IOTHUB_DEVICE_DPS_X509_CERT not found")
+                return False
+            elif not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_X509_KEY):
+                print("Error! IOTHUB_DEVICE_DPS_X509_KEY not found")
+                return False
+            elif value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_X509_PASS) is None:
+                print("Error! IOTHUB_DEVICE_DPS_X509_PASS not found")
+                return False
+            else:
+                return True
+        else:
+            return False
 #
 # End of File
 #
