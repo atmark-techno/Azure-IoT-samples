@@ -28,11 +28,15 @@ class IoTPnPClient:
         self._isConnected  = False
         self._doReconnect  = False
         if platform.system() == "Linux":
-            debian_version = subprocess.getoutput(
-                "cat /etc/os-release | grep VERSION_ID | sed -e 's/\"//g' | cut -c 12-"
+            distribution_id = subprocess.getoutput(
+                "cat /etc/os-release | grep '^ID\\s*=' | sed -E -e 's/^ID\\s*=\\s*(\\S*)/\\1/'"
             )
-            if int(debian_version) >= 10:
-                os.environ["SSL_CERT_FILE"] = certifi.where()
+            if distribution_id == "debian":
+                debian_version = subprocess.getoutput(
+                    "cat /etc/os-release | grep VERSION_ID | sed -e 's/\"//g' | cut -c 12-"
+                )
+                if int(debian_version) >= 10:
+                    os.environ["SSL_CERT_FILE"] = certifi.where()
 
     def is_connected(self):
         return self._isConnected
