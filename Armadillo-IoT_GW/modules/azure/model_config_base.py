@@ -65,6 +65,9 @@ class ModelConfigBase:
             elif not ModelConfigBase._is_valid_auth_conf(value):
                 print("Error! invalid auth conf.")
                 return False
+            if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT):
+                value[ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT] = \
+                    "global.azure-devices-provisioning.net"
             return True
         elif (name in [ModelConfigBase.SEND_INTERVAL, ModelConfigBase.THERMAL_SENSE_INTERVAL]):
             if not isinstance(value, int):
@@ -92,8 +95,9 @@ class ModelConfigBase:
 
     @staticmethod
     def _is_valid_auth_conf(value):
-        if not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT):
-            value.put(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT, "global.azure-devices-provisioning.net")
+        if value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ENDPOINT) is None:
+            print("Error! IOTHUB_DEVICE_DPS_ENDPOINT not found")
+            return False
         elif not value.get(ModelConfigBase.IOTHUB_DEVICE_DPS_ID_SCOPE):
             print("Error! IOTHUB_DEVICE_DPS_ID_SCOPE not found")
             return False
